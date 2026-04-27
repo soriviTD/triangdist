@@ -9,6 +9,33 @@
 
 #Se calcula el área de cada triángulo por separado.
 
+#(-b+-sqrt(b^2-4*a*c))/2*a
+
+#Fórmula para calcular una ecuación de segundo grado.
+res_g2 <- function(a, b, c){
+  x = NA
+  raiz = b^2-4*a*c
+  if (raiz > 0){
+    x1 <- -b+sqrt(raiz)/2*a
+    x2 <- -b-sqrt(raiz)/2*a
+    if (x1 >= 0){
+      x <- x1
+    } else if (x2 >= 0){
+      x <- x2
+    } else {
+      stop('El valor introducido no es válido.')
+    }
+  } else if (raiz == 0) {
+    x1 <- -b/2*a
+    if (x1 >= 0){
+      x <- x1
+    }
+  } else {
+    stop('El valor introducido no es válido.')
+  }
+  return (x)
+}
+
 #Density function.
 #La altura en un punto exacto.
 dtriang <- function(x, min, max, mode){
@@ -36,12 +63,10 @@ ptriang <- function(q, min, max, mode){
     val = 1
   } else if (q < mode){
     h = 2*(q-min)/((max-min)*(mode-min))
+    val = 0.5*h*q
   } else if (q>mode){
     h = 2*(max-q)/((max-min)*(max-mode))
-  }
-
-  if (h != 0){
-    val = 0.5*q*h
+    val = 1-(max-q)*h*0.5
   }
   return (val)
 }
@@ -53,22 +78,27 @@ qtriang <- function(p, min, max, mode){
   h_mode = 2/(max-min)
   p_mode = ptriang(mode, min, max, mode)
   if (p>1 | p<0){
-    stop("El valor introducido debe estar entre 0 y 1 incluidos.") #Error
+    stop('El valor introducido debe estar entre 0 y 1 incluidos.') #Error
   } else {
     if (p == p_mode){
       val = mode
     } else if (p < p_mode){
-      val = p*(max-min)*(mode-min)/2+a
+      val <- res_g2(2, -4*min, min^2-(max-min)*(mode-min)*2*p)
     } else if (p > p_mode) {
-      val = -(p*(max-min)*(max-mode)/2-b)
+      aux <- res_g2(1, 2*max, max^2-(1-p)*(max-min)*(max-mode))
+      x <- max-aux
     }
   }
 }
 
 #Random generation
 rtriang <- function(n, min, max, mode){
+  sample(0:1, size=n, replace= TRUE, prob= NULL )
 }
+
+
 
 
 #Source/Reference (ver cuál)
 #https://www.youtube.com/watch?v=kYmx_h5ril0
+#https://rpubs.com/alexsaenz539/360306
