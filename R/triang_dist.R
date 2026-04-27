@@ -93,7 +93,9 @@ qtriang <- function(p, min, max, mode){
 
 #Random generation
 rtriang <- function(n, min, max, mode){
-  sample(0:1, size=n, replace= TRUE, prob= NULL )
+  val <- runif(n, 0, 1)
+  val <- qtriang(val, min, max, mode)
+  return (val)
 }
 
 
@@ -101,4 +103,4 @@ rtriang <- function(n, min, max, mode){
 
 #Source/Reference (ver cuál)
 #https://www.youtube.com/watch?v=kYmx_h5ril0
-#https://rpubs.com/alexsaenz539/360306
+#Ayuda de R para runif function
