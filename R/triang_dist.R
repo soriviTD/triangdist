@@ -47,16 +47,28 @@ ptriang <- function(q, min, max, mode){
 }
 
 #Quantile function.
+#Le das la probabilidad y te dice qué valor de x le corresponde (inversa de
+#ptriang).
 qtriang <- function(p, min, max, mode){
-
+  h_mode = 2/(max-min)
+  p_mode = ptriang(mode, min, max, mode)
+  if (p>1 | p<0){
+    stop("El valor introducido debe estar entre 0 y 1 incluidos.") #Error
+  } else {
+    if (p == p_mode){
+      val = mode
+    } else if (p < p_mode){
+      val = p*(max-min)*(mode-min)/2+a
+    } else if (p > p_mode) {
+      val = -(p*(max-min)*(max-mode)/2-b)
+    }
+  }
 }
 
 #Random generation
 rtriang <- function(n, min, max, mode){
-
 }
 
 
-"""
-Source/Reference (ver cuál)
-https://www.youtube.com/watch?v=kYmx_h5ril0
+#Source/Reference (ver cuál)
+#https://www.youtube.com/watch?v=kYmx_h5ril0
