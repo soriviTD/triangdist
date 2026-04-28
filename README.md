@@ -2,4 +2,4 @@
 if (!require("remotes")) install.packages("remotes")
 
 # Install the package
-remotes::install_github("sorivi/triangdist")
+remotes::install_github("soriviTD/triangdist")
