@@ -10,89 +10,94 @@
 
 #' Triangular Distribution
 #'
-#'Density, distribution , quantile function and random generation for the
-#'triangular distribution with parameters min, max and mode.
+#' Density, distribution, quantile function and random generation for the
+#' triangular distribution with parameters min, max and mode.
 #'
-#' @param x,q Quantile.
-#' @param p Probability.
-#' @param n Observations to generate.
-#' @param min Minimum value.
-#' @param max Maximum value.
-#' @param mode Mode value.
-#' #'
+#' @param x,q Vector of quantiles.
+#' @param p Vector of probabilities.
+#' @param n Number of observations to generate.
+#' @param min Minimum value (lower bound a).
+#' @param max Maximum value (upper bound b).
+#' @param mode Mode value (c).
+#'
 #' @name triang_dist
 NULL
 
-#'Density function.
-#Height in a specific point.
+# Validates the (min, max, mode) parameter triple with specific error messages.
+.validate_triang_params <- function(min, max, mode) {
+  if (min >= max) {
+    stop("min must be strictly less than max (got min = ", min,
+         ", max = ", max, ").")
+  }
+  if (mode < min || mode > max) {
+    stop("mode must be between min and max (got mode = ", mode,
+         ", min = ", min, ", max = ", max, ").")
+  }
+  invisible(TRUE)
+}
+
+#' Density function.
 #' @rdname triang_dist
-#' @return \code{dtriang} Returns density value.
+#' @return \code{dtriang} Returns density value(s) for each element of \code{x}.
 #' @export
 dtriang <- function(x, min, max, mode) {
-  if (min >= max || mode < min || mode > max) {
-    stop("One or more values are wrong.")
-  } else {
-    if (x == mode) {
-      val <- 2 / (max - min)
-    } else if (x < min || x > max) {
-      val <- 0
-    } else if (x < mode) {
-      val <- 2 * (x - min) / ((max - min) * (mode - min))
-    } else if (x > mode) {
-      val <- 2 * (max - x) / ((max - min) * (max - mode))
-    }
-    val
+  .validate_triang_params(min, max, mode)
+
+  val <- numeric(length(x))
+  #Upward slope, between min and mode (skipped when mode == min)
+  if (mode > min) {
+    left <- x >= min & x < mode
+    val[left] <- 2 * (x[left] - min) / ((max - min) * (mode - min))
   }
+  #Downward slope, between mode and max (skipped when mode == max)
+  if (mode < max) {
+    right <- x > mode & x <= max
+    val[right] <- 2 * (max - x[right]) / ((max - min) * (max - mode))
+  }
+  #At the mode (top of the triangle)
+  val[x == mode] <- 2 / (max - min)
+  val
 }
 
-#'Distribution function.
-#P(X<q).
+#' Distribution function. P(X <= q).
 #' @rdname triang_dist
-#' @return \code{ptriang} Returns cumulative density value.
+#' @return \code{ptriang} Returns cumulative density value(s) for each element of \code{q}.
 #' @export
 ptriang <- function(q, min, max, mode) {
-  if (min >= max || mode < min || mode > max) {
-    stop("One or more values are wrong.")
-  } else {
-    h <- 0
-    if (q == mode) {
-      h <- 2 / (max - min)
-      val <- (mode - min) * h / 2
-    } else if (q <= min) {
-      val <- 0
-    } else if (q >= max) {
-      val <- 1
-    } else if (q < mode) {
-      h <- 2 * (q - min) / ((max - min) * (mode - min))
-      val <- 0.5 * h * (q - min)
-    } else if (q > mode) {
-      h <- 2 * (max - q) / ((max - min) * (max - mode))
-      val <- 1 - (max - q) * h * 0.5
-    }
-    val
+  .validate_triang_params(min, max, mode)
+
+  val <- numeric(length(q))
+  val[q >= max] <- 1
+  #Left of the mode (skipped when mode == min)
+  if (mode > min) {
+    left <- q > min & q <= mode
+    val[left] <- (q[left] - min) ^ 2 / ((max - min) * (mode - min))
   }
+  #Right of the mode (skipped when mode == max)
+  if (mode < max) {
+    right <- q > mode & q < max
+    val[right] <- 1 - (max - q[right]) ^ 2 / ((max - min) * (max - mode))
+  }
+  val
 }
 
-#'Quantile function.
-#You give to it the probability and it tells you which x corresponds to it
-#(ptriang^-1).
+#' Quantile function (inverse of ptriang).
 #' @rdname triang_dist
-#' @return \code{qtriang} Returns the quantile value.
+#' @return \code{qtriang} Returns the quantile value(s) for each element of \code{p}.
 #' @export
 qtriang <- function(p, min, max, mode) {
-  if (min >= max || mode < min || mode > max || p > 1 || p < 0) {
-    stop("One or more values are wrong.")
-  } else {
-    p_mode <- ptriang(mode, min, max, mode)
-    if (p == p_mode) {
-      val <- mode
-    } else if (p < p_mode) {
-      val <- sqrt(p * (max - min) * (mode - min)) + min
-    } else if (p > p_mode) {
-      val <- -sqrt((1 - p) * (max - min) * (max - mode)) + max
-    }
-    val
+  .validate_triang_params(min, max, mode)
+  if (any(p < 0 | p > 1)) {
+    stop("p must be between 0 and 1.")
   }
+
+  p_crit <- (mode - min) / (max - min) #cdf at the mode
+  val <- numeric(length(p))
+  lower <- p <= p_crit
+  upper <- p > p_crit
+  val[lower] <- min + sqrt(p[lower] * (max - min) * (mode - min))
+  val[upper] <- max - sqrt((1 - p[upper]) * (max - min) * (max - mode))
+  val
 }
 
 #' Random generation.
@@ -102,14 +107,6 @@ qtriang <- function(p, min, max, mode) {
 #' @importFrom stats runif
 #' @export
 rtriang <- function(n, min, max, mode) {
-  if (any(min >= max || mode < min || mode > max)) {
-    stop("One or more values are wrong.")
-  } else {
-    aux <- runif(n, 0, 1)
-    val <- rep(NA, n)
-    for (i in seq_along(aux)) {
-      val[i] <- qtriang(aux[i], min, max, mode)
-    }
-    val
-  }
+  .validate_triang_params(min, max, mode)
+  qtriang(runif(n, 0, 1), min, max, mode)
 }
